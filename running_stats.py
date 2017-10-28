@@ -6,18 +6,16 @@ import fitbit
 from plotly.graph_objs import Bar
 from plotly.offline import plot
 
-from running_object import Running
+from running_object import get_runs
 
 
 def get_week_number(date):
     """
-    :param str date: String which is a date, format: YYYY-MM-DD
+    :param date date: date object
     :return: Number of the week
     :rtype: int
     """
-    date_parts = date.split('-')
-    d = datetime.date(int(date_parts[0]), int(date_parts[1]), int(date_parts[2]))
-    return d.isocalendar()[1]
+    return date.isocalendar()[1]
 
 
 config = configparser.ConfigParser()
@@ -32,31 +30,9 @@ authd_client = fitbit.Fitbit(CLIENT, SECRET,
                              access_token=ACCESS_TOKEN,
                              refresh_token=REFRESH_TOKEN)
 
-sorting = 'desc'
-offset = 0
-beforeDate = '2017-06-18'
-runnings = []
-ONE_MILE = 1.609344
-response = authd_client.make_request(
-    'https://api.fitbit.com/1/user/-/activities/list.json?beforeDate={beforeDate}&offset={offset}&limit=20&sort={sorting}'.format(
-        offset=offset,
-        beforeDate=beforeDate,
-        sorting=sorting))
-cnt = 1
-for act in response['activities']:
-    if (act['activityName'] == 'Run') and (act['logType'] == 'mobile_run'):
-        runnings.append(Running(act['activeDuration'], act['distance'] * ONE_MILE, act['startTime'][0:10]))
-while response['pagination']['next'] != '':
-    url = response['pagination']['next']
-    response = authd_client.make_request(url)
-    cnt += 1
-    print(cnt)
-    for act in response['activities']:
-        if (act['activityName'] == 'Run') and (act['logType'] == 'mobile_run'):
-            runnings.append(Running(act['activeDuration'], act['distance'] * ONE_MILE, act['startTime'][0:10]))
-
+runs = get_runs(authd_client)
 weeks_accuracy = {}
-for r in runnings:
+for r in runs:
     # print("Date: {0}\tSpeed: {1:.2f}\tDistance: {2:.2f}\tDuration: {3}".format(r.date, r.get_speed(), r.distance,
     #                                                                            r.get_duration()))
     week_number = str(get_week_number(r.date))
