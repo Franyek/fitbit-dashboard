@@ -5,6 +5,7 @@ import os
 import fitbit
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
+import plotly.graph_objs as go
 
 from running_object import get_runs
 
@@ -44,8 +45,13 @@ ordered_dates = di.keys()
 sorted(ordered_dates)
 sepfile = []
 y_run_steps_steps = []
+good_days_cnt = 0
+steps_sum = 0
 for date in ordered_dates:
-    sepfile.append((date, di[date][0]))
+    daily_steps = int(di[date][0])
+    good_days_cnt = good_days_cnt + 1 if daily_steps > 8500 else good_days_cnt
+    steps_sum += daily_steps
+    sepfile.append((date, daily_steps))
     if date in run_dicts:
         y_run_steps_steps.append(int(di[date][0])-run_dicts[date])
     else:
@@ -80,6 +86,32 @@ reference_line = Scatter(
         width=5)
 )
 
+good_days_description="8500 steps days: <b>{}/{}</b>".format(good_days_cnt, len(x_all_steps_dates))
+avg_steps_description="Average daily steps: <b>{}</b>".format(round(steps_sum / len(x_all_steps_dates), 2))
+
 data = [all_steps, run_steps, reference_line]
 
-plot(data, filename='basic-area.html')
+layout = go.Layout(
+    annotations=[
+        dict(
+            showarrow=False,
+            x=0.1004254919715793,
+            y=1.16191064079952971,
+            xref='paper',
+            yref='paper',
+            align = "left",
+            text=good_days_description
+        ),
+        dict(
+            showarrow=False,
+            x=0.1004254919715793,
+            y=1.10191064079952971,
+            xref='paper',
+            yref='paper',
+            align = "left",
+            text=avg_steps_description
+        )
+    ]
+)
+fig = go.Figure(data=data, layout=layout)
+plot(fig, filename='simple-annotation.html')
